@@ -1,0 +1,240 @@
+//3B00A0707398//3B00A0647A85
+
+#include <LiquidCrystal.h>
+#include <SoftwareSerial.h>
+LiquidCrystal lcd(14,15,16,17,18,19);
+SoftwareSerial RfidSerial(2,3);
+const int IR = 7;
+const int Red_Led = 5;
+const int Green_Led = 6;const int P1_bal = 11;
+const int P1_challan = 12;
+const int start = 10;
+const int P2_bal = 9;
+const int P2_challan = 8;
+boolean stringComplete=false;
+String inputString="";
+int n=0;
+int bal_a,bal_b,challan_a,challan_b;
+void setup()
+{  
+  bal_a=0;
+  bal_b=0;
+  challan_a=0;
+  challan_b=0;
+  Serial.begin(9600);
+  RfidSerial.begin(9600);
+  lcd.begin(16, 2);
+  lcd.setCursor(0, 0);
+  lcd.print("   IOT Based  ");
+  lcd.setCursor(0, 1);
+  lcd.print(" E_Challan SYS");
+  delay(3000);
+  pinMode(IR, INPUT_PULLUP);//Switch PIN is input with PULLUP
+  pinMode(P1_bal, INPUT_PULLUP);
+  pinMode(P1_challan, INPUT_PULLUP);
+  pinMode(P2_bal, INPUT_PULLUP);
+  pinMode(P2_challan, INPUT_PULLUP);
+  pinMode(start, INPUT_PULLUP);
+  pinMode(Red_Led, OUTPUT);
+  pinMode(Green_Led, OUTPUT);
+  digitalWrite(Red_Led,HIGH);
+  digitalWrite(Green_Led, HIGH);
+}
+void loop()
+{
+
+  lcd.setCursor(0, 0);
+  lcd.print("   IOT Based  ");
+  lcd.setCursor(0, 1);
+  lcd.print(" E_Challan SYS");
+  delay(1000);
+  if(digitalRead(start)==LOW)
+  {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Challan/Balance");
+    lcd.setCursor(0, 1);
+    lcd.print("    UPDATE     ");
+    delay(2000);
+   updateChallanas();
+  }
+  else
+  UpdateServer();
+  if(digitalRead(IR)==LOW)
+  {
+    lcd.clear();
+    lcd.setCursor(0, 1);
+    lcd.print("PLZ Show RFID ");
+    lcd.setCursor(0, 1);
+    stringComplete=false;
+    //inputString="";
+    RfidSerialEvent();
+    delay(1000);
+    RfidSerialEvent();  
+  }
+  if(stringComplete)
+  {
+    lcd.setCursor(0, 0);
+    lcd.clear();
+    if(inputString=="3B00A0707398")
+    {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("HI, welcome P1 ");
+      delay(1000);
+      if(challan_a==0)
+      {
+      lcd.setCursor(0, 1);
+      lcd.print("   NO DUES  ");
+      digitalWrite(Green_Led, LOW);
+      delay(2000);
+      digitalWrite(Green_Led, HIGH);
+      }
+      if(challan_a>0)
+      {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Your Due: ");
+      lcd.print(challan_a);
+      digitalWrite(Red_Led,LOW);
+      if(challan_a<=bal_a)
+        {
+        bal_a=bal_a-challan_a;
+        challan_a=0;
+        lcd.setCursor(0, 1);
+        lcd.print("Amount Detected ");
+        digitalWrite(Red_Led,HIGH);
+        digitalWrite(Green_Led, LOW);
+        delay(1000);
+        digitalWrite(Green_Led, HIGH);
+        }
+        else
+        {
+        lcd.setCursor(0, 1);
+        lcd.print("  PLZ Recharge  ");
+        delay(1000);
+        }
+     }
+    }
+    else if(inputString=="3B00A0647A85")
+    {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("HI, welcome P2 ");
+      delay(1000);
+      if(challan_b==0)
+      {
+      lcd.setCursor(0, 1);
+      lcd.print("   NO DUES  ");
+      digitalWrite(Green_Led, LOW);
+      delay(2000);
+      digitalWrite(Green_Led, HIGH);
+      }
+      if(challan_b>0)
+      {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Your Due: ");
+      lcd.print(challan_b);
+      if(challan_b<=bal_b)
+        {
+        bal_b=bal_b-challan_b;
+        challan_b=0;
+        lcd.setCursor(0, 1);
+        lcd.print("Amount Detected ");
+        digitalWrite(Red_Led,HIGH);
+        digitalWrite(Green_Led, LOW);
+        delay(1000);
+        digitalWrite(Green_Led, HIGH);
+        }
+        else
+        {
+        lcd.setCursor(0, 1);
+        lcd.print("  PLZ Recharge  ");
+        digitalWrite(Red_Led,LOW);
+        delay(1000);
+        digitalWrite(Red_Led,HIGH);
+        }
+      }
+    }
+  }
+        stringComplete=false;
+        inputString="";
+   
+}
+
+
+void UpdateServer()
+{
+  Serial.print("<h1>E-CHALLAN SYSTEM</h1>");
+  Serial.print("<h2>P1_CHALLAN:");
+  Serial.print(challan_a);
+  Serial.print("</h2>");
+  Serial.print("<h2>P1_BALANCE:");
+  Serial.print(bal_a);
+  Serial.print("</h2>");
+  Serial.print("<h2>P2_CHALLAN:");
+  Serial.print(challan_b);
+  Serial.print("</h2>");
+  Serial.print("<h2>P2_BALANCE:");
+  Serial.print(bal_b);
+  Serial.print("</h2>");
+}
+void updateChallanas()
+{
+  lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("P1B:");
+    lcd.print(bal_a);
+    lcd.setCursor(9, 0);
+    lcd.print("P1C:");
+    lcd.print(challan_a);
+    lcd.setCursor(0, 1);
+    lcd.print("P2B:");
+    lcd.print(bal_b);
+    lcd.setCursor(9, 1);
+    lcd.print("P2C:");
+    lcd.print(challan_b);
+    if(digitalRead(P1_bal)==LOW)
+    {
+       bal_a+=100;
+       delay(500);
+    }
+    else if(digitalRead(P2_bal)==LOW)
+    {
+      bal_b+=100;
+      delay(500);
+    }
+   else if(digitalRead(P1_challan)==LOW)
+    {
+       challan_a+=100;
+       delay(500);
+    }
+   else if(digitalRead(P2_challan)==LOW)
+    {
+       challan_b+=100;
+       delay(500);
+    }
+    else
+    {
+    lcd.setCursor(0, 0);
+    lcd.print("P1B:");
+    lcd.print(bal_a);
+    lcd.setCursor(9, 0);
+    lcd.print("P1C:");
+    lcd.print(challan_a);
+    lcd.setCursor(0, 1);
+    lcd.print("P2B:");
+    lcd.print(bal_b);
+    lcd.setCursor(9, 1);
+    lcd.print("P2C:");
+    lcd.print(challan_b);
+    }
+  }
+  lcd.setCursor(0, 0);
+  lcd.print("Challan/Balance");
+  lcd.setCursor(0, 1);
+  lcd.print("UPDATED SUCCESS");
+  delay(2000);
+  lcd.clear();
+}
